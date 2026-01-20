@@ -4,7 +4,7 @@ from graph.claim_graph import claim_graph
 logger.info("Starting Agentic Claims System")
 
 state = {
-    "user_input": "Initiate claim for John Doe. Car accident on 5 Jan. Front bumper damaged."
+    "user_input": "Initiate claim for Mark Fraud. Car accident on 3 Jan. Vehicle completely damaged."
 }
 
 logger.info("Invoking claim graph with user input")
