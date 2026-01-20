@@ -1,0 +1,4 @@
+Exclusions:
+- Damage due to illegal racing
+- Driving under alcohol influence
+- Repeated claims within short time window

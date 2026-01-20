@@ -1,0 +1,57 @@
+# --------------------
+# Python
+# --------------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environment
+venv/
+.env/
+.venv/
+
+# --------------------
+# Package managers
+# --------------------
+pip-wheel-metadata/
+*.egg-info/
+.eggs/
+
+# --------------------
+# Vector DB / RAG
+# --------------------
+chroma/
+*.sqlite3
+
+# --------------------
+# Streamlit
+# --------------------
+.streamlit/
+
+# --------------------
+# Logs
+# --------------------
+*.log
+
+# --------------------
+# OS files
+# --------------------
+.DS_Store
+Thumbs.db
+
+# --------------------
+# IDEs
+# --------------------
+.vscode/
+.idea/
+
+# --------------------
+# Ollama (local models)
+# --------------------
+.ollama/
+
+# --------------------
+# MCP runtime artifacts
+# --------------------
+.mcp/

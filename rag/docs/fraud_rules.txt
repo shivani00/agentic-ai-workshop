@@ -1,0 +1,4 @@
+Fraud indicators:
+- More than 3 claims in last 12 months
+- Same claimant name repeatedly
+- Incident date very close to policy start
