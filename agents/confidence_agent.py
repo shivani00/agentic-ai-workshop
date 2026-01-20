@@ -1,16 +1,22 @@
+from logger import logger
 from llm import llm
 
 def confidence_agent(state):
-    prompt = f"""
-Inputs:
+    logger.info("🟨 Confidence Agent started")
+
+    logger.info("Calling LLM for final decision")
+    result = llm.invoke(
+        f"""
 Compliance: {state['compliance']}
 Fraud: {state['fraud']}
 
-Decide APPROVE or REJECT.
 Return JSON:
 - decision
-- confidence (0-1)
+- confidence
 - explanation
 """
-    state["final"] = llm.invoke(prompt)
+    )
+
+    logger.info(f"Final decision: {result}")
+    state["final"] = result
     return state
