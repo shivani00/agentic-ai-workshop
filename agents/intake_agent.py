@@ -1,14 +1,15 @@
 from logger import logger
 from llm import llm
 
+
 def intake_agent(state):
     logger.info("🟦 Intake Agent started")
     logger.info(f"User input: {state['user_input']}")
 
     prompt = f"""
-Extract claim details.
+Extract claim details from the text below.
 
-Return text that clearly mentions claimant name.
+Include claimant name, incident date, and damage description in plain text.
 
 Input:
 {state['user_input']}
@@ -21,7 +22,9 @@ Input:
 
     state["intake"] = result
 
-    # 🔑 IMPORTANT FIX: Explicit claimant name extraction
+    # -------------------------------
+    # Extract claimant name (simple & deterministic)
+    # -------------------------------
     result_lower = result.lower()
 
     if "mark fraud" in result_lower:
@@ -33,11 +36,28 @@ Input:
 
     logger.info(f"Extracted claimant_name: {state['claimant_name']}")
 
-    # Simple human-in-the-loop logic
-    if "date" not in result_lower or "damage" not in result_lower:
-        state["needs_human"] = True
-    else:
-        state["needs_human"] = False
+    # -------------------------------
+    # Decide if human input is needed
+    # -------------------------------
+    # Check for presence of date-like and damage-like signals
+    has_date = any(
+        word in result_lower
+        for word in [
+            "jan", "feb", "mar", "april", "may", "june",
+            "july", "aug", "sep", "oct", "nov", "dec"
+        ]
+    )
+
+    has_damage = any(
+        word in result_lower
+        for word in [
+            "damage", "damaged", "bumper", "door",
+            "broken", "scratch", "dent"
+        ]
+    )
+
+    state["needs_human"] = not (has_date and has_damage)
 
     logger.info(f"Needs human input: {state['needs_human']}")
+
     return state
