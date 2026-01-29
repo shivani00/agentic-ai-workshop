@@ -1,43 +1,69 @@
 from logger import logger
 from llm import llm
+import json
+
 
 def confidence_agent(state):
     logger.info("🟨 Confidence Agent started")
 
+    fraud = state["fraud"]
+    compliance = state["compliance"]
+    human_fraud = state.get("human_fraud_decision", "not provided")
+
+    # -------------------------------
+    # HARD RULE ENFORCEMENT (NO LLM)
+    # -------------------------------
+    if human_fraud == "no":
+        final = {
+            "decision": "REJECTED",
+            "confidence": 1.0,
+            "explanation": "Claim rejected due to human fraud reviewer marking the claim as illegitimate."
+        }
+        state["final"] = final
+        return state
+
+    if fraud["is_high_risk"]:
+        final = {
+            "decision": "REJECTED",
+            "confidence": 0.95,
+            "explanation": "Claim rejected due to high fraud risk score."
+        }
+        state["final"] = final
+        return state
+
+    # -------------------------------
+    # LLM ONLY FOR LOW-RISK CASES
+    # -------------------------------
     prompt = f"""
-You are an insurance claim decision agent.
+You are a claim decision explanation agent.
 
-Your task is to decide APPROVED or REJECTED.
+The decision is already APPROVED.
 
-IMPORTANT RULES (MUST FOLLOW):
-1. If fraud score is LOW (< 0.5) and policy is compliant, the claim should normally be APPROVED.
-2. If fraud score is HIGH (> 0.7), the claim should normally be REJECTED unless there is a strong justification.
-3. Human fraud input (if present) should strongly influence the decision.
-4. The decision label MUST match the explanation.
-5. Do NOT contradict yourself.
+Explain the approval clearly and consistently.
 
 Inputs:
 - Claim details: {state['intake']}
-- Compliance result: {state['compliance']}
-- Fraud analysis: {state['fraud']}
-- Human fraud review: {state.get('human_fraud_decision', 'not provided')}
+- Compliance: {compliance}
+- Fraud score: {fraud["score"]}
 
-Decision instructions:
-- Choose exactly one: APPROVED or REJECTED
-- Provide confidence between 0 and 1
-- Explanation must clearly justify the decision
-
-Return ONLY valid JSON in this format:
+Return ONLY valid JSON:
 {{
-  "decision": "APPROVED or REJECTED",
+  "decision": "APPROVED",
   "confidence": 0.0–1.0,
-  "explanation": "..."
+  "explanation": "clear justification"
 }}
 """
 
-    logger.info("Calling LLM for final decision")
     result = llm.invoke(prompt)
+    logger.info(f"LLM approval explanation: {result}")
 
-    logger.info(f"Final decision: {result}")
-    state["final"] = result
+    try:
+        state["final"] = json.loads(result)
+    except Exception:
+        state["final"] = {
+            "decision": "APPROVED",
+            "confidence": 0.9,
+            "explanation": "Claim approved based on low fraud risk and policy compliance."
+        }
+
     return state

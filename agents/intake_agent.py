@@ -1,5 +1,6 @@
 from logger import logger
 from llm import llm
+import json
 
 
 def intake_agent(state):
@@ -9,55 +10,42 @@ def intake_agent(state):
     prompt = f"""
 Extract claim details from the text below.
 
-Include claimant name, incident date, and damage description in plain text.
+Return ONLY valid JSON in this format:
+{{
+  "claimant_name": "full name exactly as written",
+  "incident_date": "date",
+  "damage_description": "description",
+  "severity": "LOW | MEDIUM | HIGH"
+}}
+
+Rules:
+- Severity is HIGH if damage is total, complete, severe, destroyed, or vehicle is not drivable
+- Severity is MEDIUM for partial damage such as bumper, door, scratches
+- Severity is LOW for cosmetic or very minor issues
+- Preserve the full claimant name exactly
 
 Input:
 {state['user_input']}
 """
 
-    logger.info("Calling LLM for intake extraction")
     result = llm.invoke(prompt)
+    logger.info(f"Intake raw output: {result}")
 
-    logger.info(f"Intake agent LLM output: {result}")
+    try:
+        parsed = json.loads(result)
+    except Exception as e:
+        logger.error(f"Intake JSON parse failed: {e}")
+        parsed = {
+            "claimant_name": "unknown",
+            "incident_date": "unknown",
+            "damage_description": "unknown",
+            "severity": "UNKNOWN"
+        }
 
-    state["intake"] = result
+    state["intake"] = parsed
+    state["claimant_name"] = parsed["claimant_name"].lower().strip()
 
-    # -------------------------------
-    # Extract claimant name (simple & deterministic)
-    # -------------------------------
-    result_lower = result.lower()
-
-    if "mark fraud" in result_lower:
-        state["claimant_name"] = "mark fraud"
-    elif "john doe" in result_lower:
-        state["claimant_name"] = "john doe"
-    else:
-        state["claimant_name"] = "unknown"
-
-    logger.info(f"Extracted claimant_name: {state['claimant_name']}")
-
-    # -------------------------------
-    # Decide if human input is needed
-    # -------------------------------
-    # Check for presence of date-like and damage-like signals
-    has_date = any(
-        word in result_lower
-        for word in [
-            "jan", "feb", "mar", "april", "may", "june",
-            "july", "aug", "sep", "oct", "nov", "dec"
-        ]
-    )
-
-    has_damage = any(
-        word in result_lower
-        for word in [
-            "damage", "damaged", "bumper", "door",
-            "broken", "scratch", "dent"
-        ]
-    )
-
-    state["needs_human"] = not (has_date and has_damage)
-
-    logger.info(f"Needs human input: {state['needs_human']}")
+    logger.info(f"Claimant: {state['claimant_name']}")
+    logger.info(f"Severity: {parsed['severity']}")
 
     return state
